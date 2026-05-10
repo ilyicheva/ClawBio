@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import gzip
 import hashlib
+import html as _html
 import json
 import math
 import sys
@@ -38,7 +39,7 @@ from clawbio.common.html_report import markdown_to_html_report, write_html_repor
 
 from clawbio.common.parsers import parse_genetic_file, genotypes_to_simple
 from clawbio.common.checksums import sha256_hex
-from clawbio.common.report import write_result_json, DISCLAIMER as _SHARED_DISCLAIMER
+from clawbio.common.report import write_result_json
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -49,7 +50,98 @@ RATE_LIMIT_INTERVAL = 0.55  # seconds between requests (stay under 2 req/sec)
 CACHE_TTL = 86400  # 24 hours
 USER_AGENT = "ClawBio-GWAS-PRS/0.2.0"
 
-DISCLAIMER = _SHARED_DISCLAIMER
+PRS_DISCLAIMER = (
+    "This is a research and educational tool. It is not a medical advice and "
+    "does not provide clinical diagnoses. Consult a healthcare professional "
+    "before making any medical decisions."
+)
+
+DISCLAIMER = PRS_DISCLAIMER
+
+PRS_HTML_CSS = """\
+:root {
+  --cb-green-900: #17265f;
+  --cb-green-700: #17265f;
+  --cb-green-500: #3478c8;
+  --cb-green-100: #eef2ff;
+  --cb-green-50: #f7f9ff;
+  --cb-bg: #f4f1ed;
+  --cb-surface: #ffffff;
+  --cb-text: #172033;
+  --cb-text-secondary: #5f6675;
+  --cb-border: #d9dde7;
+  --clawbio-green: #17265f;
+}
+body {
+  max-width: 1080px;
+  padding: 32px 20px;
+}
+h1 {
+  color: #17265f;
+  border-bottom-color: #17265f;
+}
+h2,
+h3 {
+  color: #17265f;
+}
+.report-header {
+  background: #17265f;
+  border-radius: 10px;
+  box-shadow: 0 18px 50px rgba(23, 38, 95, 0.16);
+}
+.metadata {
+  background: #eef2ff;
+  border: 1px solid #d9dde7;
+}
+.metadata strong,
+th,
+.report-footer .footer-brand {
+  color: #17265f;
+}
+th {
+  background: #eef2ff;
+  border-bottom-color: #c6d4f5;
+}
+tr:hover {
+  background: #eef2ff;
+}
+.table-wrap {
+  background: #ffffff;
+}
+.disclaimer {
+  background: #ffffff;
+  border: 1px solid #d9dde7;
+  border-left: 4px solid #3478c8;
+  border-radius: 10px;
+  color: #172033;
+  box-shadow: 0 10px 28px rgba(23, 38, 95, 0.08);
+}
+.disclaimer strong {
+  color: #17265f;
+}
+.report-footer {
+  border-top-color: #d9dde7;
+  color: #5f6675;
+}
+a {
+  color: #3478c8;
+}
+"""
+
+
+def decorate_prs_html(html: str) -> str:
+    """Apply PRS report styling and styled disclaimer blocks."""
+    html = html.replace("</style>", f"{PRS_HTML_CSS}\n</style>")
+    html = html.replace("<h2>Polygenic Risk Score Report</h2>\n", "", 1)
+    disclaimer_para = (
+        "<p><strong>Disclaimer</strong>: "
+        f"{_html.escape(PRS_DISCLAIMER)}</p>"
+    )
+    disclaimer_div = (
+        '<div class="disclaimer"><strong>Disclaimer:</strong> '
+        f"{_html.escape(PRS_DISCLAIMER)}</div>"
+    )
+    return html.replace(disclaimer_para, disclaimer_div)
 
 # Risk category thresholds (percentile-based)
 RISK_CATEGORIES = [
@@ -705,16 +797,10 @@ def generate_report(
     Returns:
         Markdown string.
     """
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     lines = [
-        "# GWAS Polygenic Risk Score Report",
+        "# Polygenic Risk Score Report",
         "",
-        f"**Date**: {now}",
-        f"**Tool**: ClawBio GWAS-PRS v0.2.0",
-        f"**Input file**: {input_info.get('filepath', 'N/A')}",
-        f"**Format detected**: {input_info.get('format', 'N/A')}",
-        f"**Total SNPs in file**: {input_info.get('total_snps', 'N/A'):,}",
-        f"**Genome build**: {args.build}",
+        f"**Disclaimer**: {PRS_DISCLAIMER}",
         "",
         "---",
         "",
@@ -897,9 +983,6 @@ def generate_report(
     lines.append("**Scoring files**: PGS Catalog "
                  "(https://www.pgscatalog.org/)")
     lines.append("")
-    lines.append("**Genome build**: " + args.build)
-    lines.append("")
-
     # ----- Limitations -----
     lines.append("## Limitations")
     lines.append("")
@@ -923,9 +1006,7 @@ def generate_report(
     lines.append("")
 
     # ----- Disclaimer -----
-    lines.append("## Disclaimer")
-    lines.append("")
-    lines.append(f"*{DISCLAIMER}*")
+    lines.append("**Disclaimer**: " + PRS_DISCLAIMER)
     lines.append("")
 
     return "\n".join(lines)
@@ -1355,8 +1436,9 @@ def main():
             report,
             title="Polygenic Risk Score Report",
             skill="gwas-prs",
-            subtitle="PGS Catalog scoring from genotype data",
+            subtitle="Explore genetic risk scores from your DNA data",
         )
+        html = decorate_prs_html(html)
         html_path = write_html_report(output_dir, "prs_report.html", html)
         write_html_report(output_dir, "report.html", html)
         print(f"HTML report written to {html_path}")

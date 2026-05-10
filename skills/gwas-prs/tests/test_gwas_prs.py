@@ -360,7 +360,7 @@ class TestReportGeneration:
         report = gwas_prs.generate_report(
             results, self._make_input_info(), self._make_args()
         )
-        assert "# GWAS Polygenic Risk Score Report" in report
+        assert "# Polygenic Risk Score Report" in report
 
     def test_generate_report_contains_disclaimer(self):
         """Report contains the safety disclaimer text."""
@@ -368,7 +368,7 @@ class TestReportGeneration:
         report = gwas_prs.generate_report(
             results, self._make_input_info(), self._make_args()
         )
-        assert "ClawBio is a research and educational tool" in report
+        assert "This is a research and educational tool" in report
 
     def test_generate_report_score_table(self):
         """Report includes a summary table with PGS IDs."""
