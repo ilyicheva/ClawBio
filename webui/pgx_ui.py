@@ -251,8 +251,23 @@ INDEX_HTML = """<!doctype html>
       position: relative;
       overflow: hidden;
     }
+    .result-panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(90deg, rgba(7,18,55,0.99) 0%, rgba(7,18,55,0.94) 58%, rgba(7,18,55,0.48) 100%),
+        url("/assets/report-dna-bg-selected.png");
+      background-size: cover;
+      background-position: center right;
+      opacity: 0;
+      transition: opacity 180ms ease;
+    }
+    .result-panel.has-selection::before {
+      opacity: 1;
+    }
     .result-inner {
-      width: min(100%, 620px);
+      width: min(100%, 650px);
       padding-top: 0;
       position: relative;
       z-index: 1;
@@ -266,6 +281,9 @@ INDEX_HTML = """<!doctype html>
     .empty-visual.is-visible {
       display: block;
     }
+    .result-panel.has-selection .empty-visual {
+      display: none !important;
+    }
     .empty-visual img {
       width: 100%;
       height: 100%;
@@ -275,11 +293,12 @@ INDEX_HTML = """<!doctype html>
     }
     .report-card {
       display: none;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.18);
-      border-radius: 10px;
-      padding: 28px;
-      box-shadow: 0 18px 50px rgba(0,0,0,0.16);
+      background: rgba(13, 29, 76, 0.9);
+      border: 1px solid rgba(160, 190, 255, 0.36);
+      border-radius: 14px;
+      padding: clamp(24px, 4vw, 40px);
+      box-shadow: 0 18px 60px rgba(0,0,0,0.22);
+      backdrop-filter: blur(10px);
     }
     .report-card.is-visible {
       display: block;
@@ -346,18 +365,145 @@ INDEX_HTML = """<!doctype html>
     .conditional.is-visible { display: block; }
     .report-copy {
       min-height: 240px;
-      color: rgba(255,255,255,0.82);
+      color: rgba(255,255,255,0.9);
       font-size: 16px;
-      line-height: 1.58;
+      line-height: 1.55;
     }
     .report-copy h3 {
-      margin: 0 0 18px;
+      margin: 0;
       color: white;
-      font-size: 26px;
+      font-size: clamp(26px, 3vw, 34px);
       line-height: 1.18;
     }
     .report-copy p {
       margin: 0 0 16px;
+    }
+    .preview-card {
+      display: grid;
+      gap: 22px;
+    }
+    .preview-head {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .preview-head.stacked {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .preview-title-accent {
+      display: inline-block;
+      width: 54px;
+      height: 3px;
+      margin-top: 12px;
+      border-radius: 99px;
+      background: linear-gradient(90deg, #8b7cf6, #83e7df);
+    }
+    .preview-icon,
+    .row-icon,
+    .check-icon,
+    .ready-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      border-radius: 999px;
+      color: white;
+      background: rgba(91, 104, 232, 0.28);
+      border: 1px solid rgba(126, 231, 225, 0.38);
+      box-shadow: inset 0 0 18px rgba(126, 231, 225, 0.08);
+    }
+    .preview-icon {
+      width: 66px;
+      height: 66px;
+      color: #9cf2e8;
+    }
+    .preview-icon.large {
+      width: 84px;
+      height: 84px;
+      color: white;
+      background: linear-gradient(135deg, rgba(120, 91, 231, 0.45), rgba(44, 149, 213, 0.28));
+      border-color: rgba(147, 128, 255, 0.42);
+    }
+    .preview-icon svg,
+    .row-icon svg,
+    .check-icon svg,
+    .ready-icon svg {
+      width: 54%;
+      height: 54%;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .preview-intro {
+      display: grid;
+      gap: 12px;
+      color: rgba(255,255,255,0.88);
+    }
+    .preview-intro p,
+    .preview-list p,
+    .preview-ready p {
+      margin: 0;
+    }
+    .preview-divider {
+      height: 1px;
+      background: rgba(190, 210, 255, 0.22);
+    }
+    .preview-list {
+      display: grid;
+      gap: 16px;
+    }
+    .preview-subtitle {
+      color: white;
+      font-weight: 800;
+    }
+    .preview-row,
+    .preview-ready {
+      display: grid;
+      grid-template-columns: 42px 1fr;
+      align-items: center;
+      gap: 14px;
+    }
+    .preview-row.with-rule {
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(190, 210, 255, 0.14);
+    }
+    .row-icon,
+    .check-icon,
+    .ready-icon {
+      width: 36px;
+      height: 36px;
+    }
+    .row-icon {
+      color: #b4c4ff;
+      border-color: rgba(126, 231, 225, 0.34);
+    }
+    .check-icon {
+      color: #9cf2e8;
+      background: rgba(37, 93, 162, 0.32);
+    }
+    .ready-icon {
+      color: #cbd5ff;
+      background: rgba(91, 104, 232, 0.24);
+      border-color: rgba(147, 128, 255, 0.35);
+    }
+    .preview-card.nutrigx .preview-icon,
+    .preview-card.nutrigx .row-icon {
+      color: #d8c8ff;
+      background: rgba(116, 83, 215, 0.34);
+      border-color: rgba(154, 132, 255, 0.42);
+    }
+    .preview-card.drugphoto .preview-icon,
+    .preview-card.drugphoto .row-icon,
+    .preview-card.pharmgx .preview-icon,
+    .preview-card.pharmgx .row-icon {
+      color: #8cf0e6;
+    }
+    .preview-card.pharmgx .preview-head {
+      align-items: center;
     }
     .report-copy ul {
       margin: 0 0 18px;
@@ -539,50 +685,114 @@ INDEX_HTML = """<!doctype html>
     const viewReport = document.getElementById('viewReport');
     const downloadReport = document.getElementById('downloadReport');
     const disclaimerChecks = Array.from(document.querySelectorAll('.disclaimer-check'));
+    const resultPanel = document.querySelector('.result-panel');
+    const icons = {
+      dna: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3c5 3 5 6 10 9M17 3c-5 3-5 6-10 9M7 21c5-3 5-6 10-9M17 21c-5-3-5-6-10-9M8 6h8M8 18h8M9 10h6M9 14h6"/></svg>',
+      shieldPill: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v5c0 5-3.3 8.5-8 10-4.7-1.5-8-5-8-10V6l8-3z"/><path d="M9 14l6-6"/><path d="M8.4 10.6l5 5"/></svg>',
+      bottle: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6M10 3v4l-3 3v10h10V10l-3-3V3"/><path d="M10 14h4M12 12v4"/></svg>',
+      apple: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8c2-3 5-2 6 1 1.5 4-2 10-6 10S4.5 13 6 9c1-3 4-4 6-1z"/><path d="M12 8c0-2 1-4 3-5"/><path d="M14 4c2 0 3 1 4 2"/></svg>',
+      users: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 11a4 4 0 1 0-8 0"/><path d="M3 20c1-4 5-6 9-6s8 2 9 6"/><path d="M17 7a3 3 0 0 1 0 6"/><path d="M5 7a3 3 0 0 0 0 6"/></svg>',
+      shield: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v5c0 5-3.3 8.5-8 10-4.7-1.5-8-5-8-10V6l8-3z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>',
+      file: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/></svg>',
+      book: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5c3-1.5 5-1.5 8 0v15c-3-1.5-5-1.5-8 0z"/><path d="M12 5c3-1.5 5-1.5 8 0v15c-3-1.5-5-1.5-8 0z"/></svg>',
+      chart: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M7 17V9M12 17V5M17 17v-6"/><path d="M6 13l3-3 3 2 4-5 2 2"/></svg>',
+      leaf: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4c-8 0-13 5-13 13"/><path d="M20 4c0 8-5 13-13 13"/><path d="M7 17c3-1 6-3 9-7"/></svg>',
+      bars: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M7 17v-5M12 17V7M17 17v-8"/><path d="M7 9l3 2 3-5 4 2"/></svg>',
+      chat: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v10H9l-4 4z"/><path d="M8 9h.01M12 9h.01M16 9h.01"/></svg>',
+      check: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l4 4 10-10"/></svg>',
+      document: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v5h5"/><path d="M10 13h4M10 17h6"/></svg>',
+      alert: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 16H3z"/><path d="M12 9v4M12 17h.01"/></svg>'
+    };
     const reportDescriptions = {
       pharmgx: `
-        <h3>What you’ll get</h3>
-        <p>Your medication report will show how your genes may affect the way some medicines work for you.</p>
-        <p>It will include:</p>
-        <ul>
-          <li>Medicines where extra caution may be worth discussing with a healthcare professional</li>
-          <li>Medicines where standard guidance may apply</li>
-          <li>Areas where your uploaded file may not contain enough information</li>
-          <li>Evidence sources used to support each result</li>
-        </ul>
-        <p>Your report will appear here once it’s ready.</p>
+        <div class="preview-card pharmgx">
+          <div class="preview-head">
+            <span class="preview-icon large">${icons.shieldPill}</span>
+            <div>
+              <h3>What you’ll get</h3>
+              <span class="preview-title-accent"></span>
+            </div>
+          </div>
+          <div class="preview-intro">
+            <p>Your medication report will show how your genes may affect the way some medicines work for you.</p>
+          </div>
+          <div class="preview-divider"></div>
+          <div class="preview-list">
+            <div class="preview-row with-rule"><span class="row-icon">${icons.users}</span><p>Medicines where extra caution may be worth discussing with a healthcare professional</p></div>
+            <div class="preview-row with-rule"><span class="row-icon">${icons.shield}</span><p>Medicines where standard guidance may apply</p></div>
+            <div class="preview-row with-rule"><span class="row-icon">${icons.file}</span><p>Areas where your uploaded file may not contain enough information</p></div>
+            <div class="preview-row"><span class="row-icon">${icons.book}</span><p>Evidence sources used to support each result</p></div>
+          </div>
+          <div class="preview-divider"></div>
+          <div class="preview-ready"><span class="ready-icon">${icons.chart}</span><p>Your report will appear here once it’s ready.</p></div>
+        </div>
       `,
       drugphoto: `
-        <h3>What you’ll get</h3>
-        <p>Check one medicine against your genetic data.</p>
-        <p>This report can help you see whether your genes may affect how this medicine works for you, including any relevant PGx insights, limitations, and points to discuss with a healthcare professional.</p>
-        <p>Your result will appear here once it’s ready.</p>
+        <div class="preview-card drugphoto">
+          <div class="preview-head stacked">
+            <span class="preview-icon large">${icons.bottle}</span>
+            <h3>What you’ll get</h3>
+          </div>
+          <div class="preview-intro">
+            <p>Check one medicine against your genetic data.</p>
+          </div>
+          <div class="preview-divider"></div>
+          <div class="preview-intro">
+            <p>This report can help you see whether your genes may affect how this medicine works for you, including any relevant PGx insights, limitations, and points to discuss with a healthcare professional.</p>
+          </div>
+          <div class="preview-divider"></div>
+          <div class="preview-list">
+            <div class="preview-row"><span class="row-icon">${icons.bars}</span><p>Personalised PGx insights for the medicine you choose</p></div>
+            <div class="preview-row"><span class="row-icon">${icons.alert}</span><p>Key considerations and important limitations</p></div>
+            <div class="preview-row"><span class="row-icon">${icons.chat}</span><p>Discussion points for your healthcare professional</p></div>
+            <div class="preview-row"><span class="row-icon">${icons.book}</span><p>Evidence sources supporting each result</p></div>
+          </div>
+          <div class="preview-divider"></div>
+          <p>Your result will appear here once it’s ready.</p>
+        </div>
       `,
       nutrigx: `
-        <h3>What you’ll get</h3>
-        <p>Explore how your genetic data may relate to nutrition, vitamins, caffeine, fat metabolism and other dietary factors.</p>
-        <p>This report includes:</p>
-        <ul>
-          <li>Nutrient areas where your genes may suggest higher or lower sensitivity</li>
-          <li>A simple risk score for each nutrition domain</li>
-          <li>Genetic variants found in your uploaded file</li>
-          <li>Notes on supplements and nutrients to discuss with a qualified healthcare professional</li>
-        </ul>
-        <p>Your report will appear here once it’s ready.</p>
+        <div class="preview-card nutrigx">
+          <div class="preview-head stacked">
+            <span class="preview-icon large">${icons.apple}</span>
+            <h3>What you’ll get</h3>
+          </div>
+          <div class="preview-intro">
+            <p>Explore how your genetic data may relate to nutrition, vitamins, caffeine, fat metabolism and other dietary factors.</p>
+          </div>
+          <div class="preview-divider"></div>
+          <div class="preview-list">
+            <div class="preview-row"><span class="row-icon">${icons.leaf}</span><p>Nutrient areas where your genes may suggest higher or lower sensitivity</p></div>
+            <div class="preview-row"><span class="row-icon">${icons.bars}</span><p>A simple risk score for each nutrition domain</p></div>
+            <div class="preview-row"><span class="row-icon">${icons.dna}</span><p>Genetic variants found in your uploaded file</p></div>
+            <div class="preview-row"><span class="row-icon">${icons.chat}</span><p>Notes on supplements and nutrients to discuss with a qualified healthcare professional</p></div>
+          </div>
+          <div class="preview-divider"></div>
+          <p>Your report will appear here once it’s ready.</p>
+        </div>
       `,
       prs: `
-        <h3>What you’ll get</h3>
-        <p>Explore how your genetic data may relate to selected health traits.</p>
-        <p>You can choose one trait to analyse, or run a report for all available traits.</p>
-        <p>This report includes:</p>
-        <ul>
-          <li>A polygenic risk score for each selected trait</li>
-          <li>Your estimated percentile and risk category</li>
-          <li>How many relevant genetic variants were found in your file</li>
-          <li>Key variants that contributed to the score</li>
-          <li>Important limitations to help you interpret the result carefully</li>
-        </ul>
-        <p>Your report will appear here once it’s ready.</p>
+        <div class="preview-card prs">
+          <div class="preview-head">
+            <span class="preview-icon">${icons.dna}</span>
+            <h3>What you’ll get</h3>
+          </div>
+          <div class="preview-intro">
+            <p>Explore how your genetic data may relate to selected health traits.</p>
+            <p>You can choose one trait to analyse, or run a report for all available traits.</p>
+          </div>
+          <div class="preview-divider"></div>
+          <div class="preview-list">
+            <p class="preview-subtitle">This report includes:</p>
+            <div class="preview-row"><span class="check-icon">${icons.check}</span><p>A polygenic risk score for each selected trait</p></div>
+            <div class="preview-row"><span class="check-icon">${icons.check}</span><p>Your estimated percentile and risk category</p></div>
+            <div class="preview-row"><span class="check-icon">${icons.check}</span><p>How many relevant genetic variants were found in your file</p></div>
+            <div class="preview-row"><span class="check-icon">${icons.check}</span><p>Key variants that contributed to the score</p></div>
+            <div class="preview-row"><span class="check-icon">${icons.check}</span><p>Important limitations to help you interpret the result carefully</p></div>
+          </div>
+          <div class="preview-divider"></div>
+          <div class="preview-ready"><span class="ready-icon">${icons.document}</span><p>Your report will appear here once it’s ready.</p></div>
+        </div>
       `,
     };
     let isRunning = false;
@@ -610,18 +820,21 @@ INDEX_HTML = """<!doctype html>
 
     function showReportDescription() {
       const hasDescription = Boolean(skill.value);
+      resultPanel.classList.toggle('has-selection', hasDescription);
       reportCard.classList.toggle('is-visible', hasDescription);
       emptyVisual.classList.toggle('is-visible', !hasDescription);
       statusBox.innerHTML = hasDescription ? (reportDescriptions[skill.value] || '') : '';
     }
 
     function showAnalysing() {
+      resultPanel.classList.add('has-selection');
       emptyVisual.classList.remove('is-visible');
       reportCard.classList.add('is-visible');
       statusBox.innerHTML = '<p class="analysing-message">Analysing...</p>';
     }
 
     function showReady() {
+      resultPanel.classList.add('has-selection');
       emptyVisual.classList.remove('is-visible');
       reportCard.classList.add('is-visible');
       statusBox.innerHTML = '<p class="ready-message">Your report is ready</p>';
