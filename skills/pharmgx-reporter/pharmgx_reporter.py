@@ -12,6 +12,7 @@ Usage:
 """
 
 import argparse
+import html as _h
 import re
 import sys
 from datetime import datetime, timezone
@@ -875,6 +876,248 @@ _CLASS_LABELS = {
     "indeterminate": "INSUFFICIENT DATA",
 }
 
+DRUGPHOTO_DISCLAIMER = (
+    "Research and educational use only. Consult a healthcare professional."
+)
+
+DRUGPHOTO_HTML_CSS = """\
+.medicine-card {
+  background: #ffffff;
+  border: 1px solid #d9dde7;
+  border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(23, 38, 95, 0.08);
+  padding: 20px;
+  margin: 18px 0 28px;
+}
+.medicine-card h2,
+.result-summary h2 {
+  margin-top: 0;
+}
+.medicine-name {
+  color: #17265f;
+  font-size: 1.8em;
+  font-weight: 800;
+  margin: 0 0 14px;
+}
+.medicine-meta {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+.medicine-meta div {
+  display: grid;
+  grid-template-columns: minmax(140px, 0.35fr) 1fr;
+  gap: 14px;
+}
+.medicine-meta dt {
+  color: #5f6675;
+  font-weight: 700;
+}
+.medicine-meta dd {
+  margin: 0;
+}
+.result-summary {
+  background: #f7f9ff;
+  border-left: 4px solid #3478c8;
+  border-radius: 10px;
+  padding: 18px 20px;
+  margin: 22px 0;
+}
+.result-summary h3 {
+  margin-top: 0;
+}
+details {
+  background: #ffffff;
+  border: 1px solid #d9dde7;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin: 22px 0;
+}
+details summary {
+  color: #17265f;
+  cursor: pointer;
+  font-weight: 800;
+}
+@media (max-width: 640px) {
+  .medicine-meta div {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}
+"""
+
+
+def _display_phenotype(text):
+    """Use patient-facing spelling in the Drug Photo report."""
+    return (text or "Not available").replace("Metabolizer", "metaboliser")
+
+
+def _display_class(text):
+    return (text or "").replace("Analgesic", "pain medicine")
+
+
+def _drugphoto_gene_meaning(gene, phenotype):
+    pheno = _display_phenotype(phenotype)
+    if "Indeterminate" in pheno or "not tested" in pheno.lower() or "NOT_TESTED" in pheno:
+        return f"Your uploaded file does not contain enough information to fully assess {gene}."
+    if "Normal metaboliser" in pheno or "Normal Function" in pheno or "Normal Activity" in pheno:
+        return f"Your {gene} result suggests typical processing for medicines affected by this gene."
+    if "Rapid metaboliser" in pheno or "Ultrarapid metaboliser" in pheno:
+        return f"Your {gene} result suggests faster processing for some medicines affected by this gene."
+    if "Intermediate" in pheno or "Decreased" in pheno or "Reduced" in pheno:
+        return f"Your {gene} result suggests altered processing or response for some medicines affected by this gene."
+    if "Poor metaboliser" in pheno or "Poor Function" in pheno:
+        return f"Your {gene} result suggests reduced processing for some medicines affected by this gene."
+    return f"Your {gene} result may be relevant for medicines affected by this gene."
+
+
+def _drugphoto_summary(result):
+    drug_lower = result["drug"].lower()
+    cls = result["classification"]
+    if cls == "standard":
+        heading = "Standard guidance based on the gene assessed"
+        body = (
+            f"Based on the genetic information available in your file, no PGx-specific "
+            f"dose change was identified for {drug_lower}."
+        )
+    elif cls == "caution":
+        heading = "Use with caution based on the gene assessed"
+        body = (
+            f"Based on the genetic information available in your file, a PGx-relevant "
+            f"caution was identified for {drug_lower}. Dose adjustment, closer monitoring, "
+            "or an alternative medicine may be worth discussing with a doctor or pharmacist."
+        )
+    elif cls == "avoid":
+        heading = "Important PGx finding based on the gene assessed"
+        body = (
+            f"Based on the genetic information available in your file, {drug_lower} may "
+            "not be the best option for your genetic result. Discuss alternatives with a "
+            "doctor or pharmacist before using or changing this medicine."
+        )
+    else:
+        heading = "Not enough genetic information for specific guidance"
+        body = (
+            f"Based on the genetic information available in your file, this report could "
+            f"not identify a clear PGx-specific result for {drug_lower}."
+        )
+    return heading, body
+
+
+def _profile_table_rows(profiles):
+    rows = []
+    for gene, profile in profiles.items():
+        diplotype = profile.get("diplotype", "Not available")
+        phenotype = _display_phenotype(profile.get("phenotype", "Not available"))
+        rows.append(
+            "<tr>"
+            f"<td>{_h.escape(gene)}</td>"
+            f"<td>{_h.escape(diplotype)}</td>"
+            f"<td>{_h.escape(phenotype)}</td>"
+            "</tr>"
+        )
+    return "\n".join(rows)
+
+
+def generate_single_drug_html_report(result, profiles, visible_dose=None):
+    """Build the Drug Photo / single medicine HTML report."""
+    relevant_genes = [g.strip() for g in result["gene"].replace("+", ",").split(",")]
+    relevant_rows = []
+    detail_rows = []
+    for gene in relevant_genes:
+        profile = profiles.get(gene, {})
+        phenotype = _display_phenotype(profile.get("phenotype", result.get("phenotype", "")))
+        diplotype = profile.get("diplotype", result.get("diplotype", "Not available"))
+        relevant_rows.append(
+            "<tr>"
+            f"<td>{_h.escape(gene)}</td>"
+            f"<td>{_h.escape(phenotype)}</td>"
+            f"<td>{_h.escape(_drugphoto_gene_meaning(gene, phenotype))}</td>"
+            "</tr>"
+        )
+        detail_rows.append(
+            "<tr>"
+            f"<td>{_h.escape(gene)}</td>"
+            f"<td>{_h.escape(diplotype)}</td>"
+            f"<td>{_h.escape(phenotype)}</td>"
+            "</tr>"
+        )
+
+    summary_heading, summary_body = _drugphoto_summary(result)
+    dose_html = ""
+    if visible_dose:
+        dose_html = (
+            "<div><dt>Dose entered</dt>"
+            f"<dd>{_h.escape(str(visible_dose))}</dd></div>"
+        )
+
+    b = HtmlReportBuilder(
+        "Single Medicine Gene Insight",
+        "Drug Photo",
+        extra_css=PGX_HTML_CSS + DRUGPHOTO_HTML_CSS,
+    )
+    disclaimer_html = (
+        '<div class="disclaimer"><strong>DISCLAIMER:</strong> '
+        f"{_h.escape(DRUGPHOTO_DISCLAIMER)}</div>"
+    )
+    b.add_raw_html(disclaimer_html)
+    b.add_header_block("Single Medicine Gene Insight", "A focused gene-medicine check")
+    b.add_raw_html(
+        '<section class="medicine-card">'
+        "<h2>Medicine checked</h2>"
+        f'<p class="medicine-name">{_h.escape(result["drug"])}</p>'
+        '<dl class="medicine-meta">'
+        f'<div><dt>Also known as</dt><dd>{_h.escape(result["brand"])}</dd></div>'
+        f'<div><dt>Medicine type</dt><dd>{_h.escape(_display_class(result["class"]))}</dd></div>'
+        f"{dose_html}"
+        "</dl>"
+        "</section>"
+    )
+    b.add_raw_html(
+        '<section class="result-summary">'
+        "<h2>Result summary</h2>"
+        f"<h3>{_h.escape(summary_heading)}</h3>"
+        f"<p>{_h.escape(summary_body)}</p>"
+        "<p>Use this medicine only as prescribed. Speak with a doctor or pharmacist if you "
+        "have side effects, poor symptom relief, or questions about whether this medicine "
+        "is right for you.</p>"
+        "</section>"
+    )
+    b.add_raw_html(
+        "<h2>Your relevant gene result</h2>"
+        '<div class="table-wrap"><table><thead><tr>'
+        "<th>Gene</th><th>Your result</th><th>What it means</th>"
+        "</tr></thead><tbody>"
+        + "\n".join(relevant_rows)
+        + "</tbody></table></div>"
+        '<details><summary>Expanded gene detail</summary>'
+        '<div class="table-wrap"><table><thead><tr>'
+        "<th>Gene</th><th>Diplotype</th><th>Phenotype</th>"
+        "</tr></thead><tbody>"
+        + "\n".join(detail_rows)
+        + "</tbody></table></div></details>"
+    )
+    b.add_raw_html(
+        "<h2>Evidence source</h2>"
+        "<h3>Evidence used</h3>"
+        "<p>This result is based on pharmacogenomic guidance from:</p>"
+        "<ul>"
+        "<li>CPIC guidelines</li>"
+        "<li>FDA Table of Pharmacogenomic Biomarkers in Drug Labelling</li>"
+        "</ul>"
+    )
+    b.add_raw_html(
+        "<details><summary>Other gene results</summary>"
+        "<p>These results may be used for other medicine checks.</p>"
+        '<div class="table-wrap"><table><thead><tr>'
+        "<th>Gene</th><th>Result</th><th>Interpretation</th>"
+        "</tr></thead><tbody>"
+        + _profile_table_rows(profiles)
+        + "</tbody></table></div></details>"
+    )
+    b.add_raw_html(disclaimer_html)
+    b.add_footer_block("Drug Photo", "0.2.0")
+    return b.render()
+
 
 def format_dosage_card(result, visible_dose=None):
     """Format a single-drug lookup result as a visual Telegram card."""
@@ -1571,6 +1814,97 @@ def _evidence_cell_html(enrichment_entry, classification=""):
 
 ICON = {"standard": "OK", "caution": "CAUTION", "avoid": "AVOID", "indeterminate": "INDETERMINATE — INSUFFICIENT DATA"}
 
+PGX_HTML_DISCLAIMER = DISCLAIMER.replace("ClawBio is", "This is", 1)
+
+PGX_HTML_CSS = """\
+:root {
+  --cb-green-900: #17265f;
+  --cb-green-700: #17265f;
+  --cb-green-500: #3478c8;
+  --cb-green-100: #eef2ff;
+  --cb-green-50: #f7f9ff;
+  --cb-bg: #f4f1ed;
+  --cb-surface: #ffffff;
+  --cb-text: #172033;
+  --cb-text-secondary: #5f6675;
+  --cb-border: #d9dde7;
+  --clawbio-green: #17265f;
+}
+body {
+  max-width: 1080px;
+  padding: 32px 20px;
+}
+h1 {
+  color: #17265f;
+  border-bottom-color: #17265f;
+}
+h2 {
+  color: #17265f;
+}
+h3 {
+  color: #17265f;
+}
+.report-header {
+  background: #17265f;
+  border-radius: 10px;
+  box-shadow: 0 18px 50px rgba(23, 38, 95, 0.16);
+}
+.metadata {
+  background: #eef2ff;
+}
+.metadata strong,
+th,
+.exec-summary h3,
+.report-footer .footer-brand {
+  color: #17265f;
+}
+th {
+  background: #eef2ff;
+  border-bottom-color: #c6d4f5;
+}
+tr:hover {
+  background: #eef2ff;
+}
+tr.row-standard {
+  background: #f7f9ff;
+}
+tr.row-standard:hover {
+  background: #eef2ff;
+}
+.badge-standard {
+  background: #d8e6ff;
+  color: #17265f;
+}
+.badge-evidence-high {
+  background: #d8e6ff;
+  color: #17265f;
+}
+.evidence-verified {
+  color: #3478c8;
+}
+.evidence-rec-source {
+  background: #17265f;
+}
+.summary-card.standard {
+  border-top-color: #3478c8;
+}
+.summary-card.standard .count {
+  color: #17265f;
+}
+.exec-stat.stat-ok {
+  border-left-color: #3478c8;
+}
+.disclaimer {
+  background: #f4f6fb;
+  border-color: #c9ced8;
+  border-left: 4px solid #17265f;
+  color: #26324a;
+}
+a {
+  color: #3478c8;
+}
+"""
+
 
 def generate_report(input_path, fmt, total_snps, pgx_snps, profiles, drug_results):
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
@@ -1866,7 +2200,11 @@ def generate_html_report(input_path, fmt, total_snps, pgx_snps, profiles, drug_r
     not_tested = [g for g, p in profiles.items() if p["diplotype"] == "NOT_TESTED"]
     n_genes_tested = len(profiles) - len(not_tested)
 
-    b = HtmlReportBuilder("ClawBio PharmGx Report", "PharmGx Reporter v0.2.0")
+    b = HtmlReportBuilder(
+        "ClawBio PharmGx Report",
+        "PharmGx Reporter v0.2.0",
+        extra_css=PGX_HTML_CSS,
+    )
 
     # ── Disclaimer at top ──
     b.add_disclaimer()
@@ -2029,7 +2367,10 @@ def generate_html_report(input_path, fmt, total_snps, pgx_snps, profiles, drug_r
     # ── Footer ──
     b.add_footer_block("PharmGx Reporter", "0.2.0")
 
-    return b.render()
+    return b.render().replace(
+        _html.escape(DISCLAIMER),
+        _html.escape(PGX_HTML_DISCLAIMER),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -2146,6 +2487,14 @@ def main():
             sys.exit(1)
         result = lookup_single_drug(resolved, profiles)
         print(format_dosage_card(result, visible_dose=args.dose))
+        outdir = Path(args.output)
+        outdir.mkdir(parents=True, exist_ok=True)
+        html_content = generate_single_drug_html_report(
+            result,
+            profiles,
+            visible_dose=args.dose,
+        )
+        write_html_report(outdir, "report.html", html_content)
         sys.exit(0)
 
     # Drug lookup

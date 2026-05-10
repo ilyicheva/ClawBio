@@ -753,6 +753,8 @@ def _run_skill(fields: dict[str, str], upload_path: Path) -> dict:
             str(PROJECT_ROOT / "skills" / "pharmgx-reporter" / "pharmgx_reporter.py"),
             "--input",
             str(upload_path),
+            "--output",
+            str(output_dir),
         ]
         drug = fields.get("drug", "").strip()
         if not drug:

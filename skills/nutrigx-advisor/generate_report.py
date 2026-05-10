@@ -10,6 +10,96 @@ from pathlib import Path
 from clawbio.common.html_report import markdown_to_html_report, write_html_report
 
 
+NUTRIGX_DISCLAIMER = (
+    "This report is for research and educational purposes only. "
+    "It does not constitute medical advice. Consult a registered dietitian or clinical "
+    "geneticist before making significant dietary changes or starting supplements."
+)
+
+NUTRIGX_REFERENCES = [
+    "Corbin JM & Ruczinski I (2023). Nutrigenomics: current state and future directions. *Annu Rev Nutr*.",
+    "Fenech M et al. (2011). Nutrigenetics and nutrigenomics: viewpoints on the current status. *J Nutrigenet Nutrigenomics*.",
+    "Stover PJ (2006). Influence of human genetic variation on nutritional requirements. *Am J Clin Nutr*.",
+    "Phillips CM (2013). Nutrigenetics and metabolic disease: current status and implications for personalised nutrition. *Nutrients*.",
+    "Minihane AM et al. (2015). APOE genotype, cardiovascular risk and responsiveness to dietary fat manipulation. *Proc Nutr Soc*.",
+    "Frayling TM et al. (2007). A common variant in the FTO gene is associated with body mass index. *Science*.",
+    "Pare G et al. (2010). MTHFR variants and cardiovascular risk. *Hum Genet*.",
+    "Lecerf JM & de Lorgeril M (2011). Dietary cholesterol: from physiology to cardiovascular risk. *Br J Nutr*.",
+    "Tanaka T et al. (2009). Genome-wide association study of plasma polyunsaturated fatty acids in the InCHIANTI Study. *PLoS Genet* (FADS1/2).",
+    "Cornelis MC et al. (2006). Coffee, CYP1A2 genotype, and risk of myocardial infarction. *JAMA*.",
+]
+
+NUTRIGX_HTML_CSS = """\
+:root {
+  --cb-green-900: #17265f;
+  --cb-green-700: #17265f;
+  --cb-green-500: #3478c8;
+  --cb-green-100: #eef2ff;
+  --cb-green-50: #f7f9ff;
+  --cb-bg: #f4f1ed;
+  --cb-surface: #ffffff;
+  --cb-text: #172033;
+  --cb-text-secondary: #5f6675;
+  --cb-border: #d9dde7;
+  --clawbio-green: #17265f;
+}
+body {
+  max-width: 1080px;
+  padding: 32px 20px;
+}
+h1 {
+  color: #17265f;
+  border-bottom-color: #17265f;
+}
+h2,
+h3 {
+  color: #17265f;
+}
+.report-header {
+  background: #17265f;
+  border-radius: 10px;
+  box-shadow: 0 18px 50px rgba(23, 38, 95, 0.16);
+}
+.metadata {
+  background: #eef2ff;
+  border: 1px solid #d9dde7;
+}
+.metadata strong,
+th,
+.report-footer .footer-brand {
+  color: #17265f;
+}
+th {
+  background: #eef2ff;
+  border-bottom-color: #c6d4f5;
+}
+tr:hover {
+  background: #eef2ff;
+}
+.table-wrap {
+  background: #ffffff;
+}
+.disclaimer {
+  background: #ffffff;
+  border: 1px solid #d9dde7;
+  border-left: 4px solid #3478c8;
+  border-radius: 10px;
+  color: #172033;
+  box-shadow: 0 10px 28px rgba(23, 38, 95, 0.08);
+}
+.disclaimer strong {
+  color: #17265f;
+}
+.report-footer {
+  border-top-color: #d9dde7;
+  color: #5f6675;
+}
+a {
+  color: #3478c8;
+}
+"""
+
+
 DOMAIN_LABELS = {
     "folate": "Folate / B-Vitamins",
     "vitamin_d": "Vitamin D",
@@ -90,6 +180,21 @@ RECOMMENDATIONS = {
 }
 
 
+def _decorate_nutrigx_html(html: str) -> str:
+    """Apply NutriGx-specific report styling and styled disclaimers."""
+    html = html.replace("</style>", f"{NUTRIGX_HTML_CSS}\n</style>")
+    html = html.replace("<h2>NutriGx Report</h2>\n", "", 1)
+    disclaimer_para = (
+        "<p><strong>Disclaimer</strong>: "
+        f"{NUTRIGX_DISCLAIMER}</p>"
+    )
+    disclaimer_div = (
+        '<div class="disclaimer"><strong>Disclaimer:</strong> '
+        f"{NUTRIGX_DISCLAIMER}</div>"
+    )
+    return html.replace(disclaimer_para, disclaimer_div)
+
+
 def generate_report(snp_calls, risk_scores, snp_panel, output_dir, figures=True, input_file=""):
     """Generate Markdown report and optional figures. Returns path to report file."""
     output_dir = Path(output_dir)
@@ -99,15 +204,9 @@ def generate_report(snp_calls, risk_scores, snp_panel, output_dir, figures=True,
 
     # ── Header ────────────────────────────────────────────────────────────────
     lines += [
-        "# NutriGx Personalised Nutrition Report",
+        "# NutriGx Report",
         "",
-        f"**Generated**: {timestamp}  ",
-        f"**Tool**: ClawBio NutriGx Advisor v0.2.0  ",
-        f"**Input**: `{Path(input_file).name}`  ",
-        "",
-        "> **Disclaimer**: This report is for research and educational purposes only. "
-        "It does not constitute medical advice. Consult a registered dietitian or clinical "
-        "geneticist before making significant dietary changes or starting supplements.",
+        f"**Disclaimer**: {NUTRIGX_DISCLAIMER}",
         "",
     ]
 
@@ -216,15 +315,17 @@ def generate_report(snp_calls, risk_scores, snp_panel, output_dir, figures=True,
 
     # ── Footer ────────────────────────────────────────────────────────────────
     lines += [
-        "## Reproducibility",
+        f"**Disclaimer**: {NUTRIGX_DISCLAIMER}",
         "",
-        "This report was generated deterministically. See `commands.sh` and `environment.yml`",
-        "in the output directory to reproduce this analysis on any machine.",
+        f"**Generated**: {timestamp}  ",
+        "",
+        f"**Tool**: ClawBio NutriGx Advisor v0.2.0  ",
+        "",
+        f"**Input**: `{Path(input_file).name}`  ",
         "",
         "## References",
         "",
-        "SNP-nutrient associations sourced from GWAS Catalog, ClinVar, and CPIC guidelines.",
-        "Full citations available in `skills/nutrigx-advisor/SKILL.md`.",
+        *[f"- {reference}" for reference in NUTRIGX_REFERENCES],
         "",
     ]
 
@@ -233,10 +334,11 @@ def generate_report(snp_calls, risk_scores, snp_panel, output_dir, figures=True,
     report_path.write_text(report_text)
     html = markdown_to_html_report(
         report_text,
-        title="NutriGx Advisor Report",
+        title="NutriGx Report",
         skill="nutrigx-advisor",
         subtitle="Personalised nutrigenomics from genotype data",
     )
+    html = _decorate_nutrigx_html(html)
     write_html_report(output_dir, "nutrigx_report.html", html)
     write_html_report(output_dir, "report.html", html)
 
