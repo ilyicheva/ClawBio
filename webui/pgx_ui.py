@@ -133,7 +133,18 @@ INDEX_HTML = """<!doctype html>
     }
     .result-inner {
       width: min(100%, 620px);
-      padding-top: 361px;
+      padding-top: 0;
+    }
+    .report-card {
+      display: none;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 10px;
+      padding: 28px;
+      box-shadow: 0 18px 50px rgba(0,0,0,0.16);
+    }
+    .report-card.is-visible {
+      display: block;
     }
     .eyebrow {
       margin: 0 0 10px;
@@ -353,7 +364,7 @@ INDEX_HTML = """<!doctype html>
             <span>I agree to consult a qualified healthcare professional before making any medical decisions based on the information provided.</span>
           </label>
         </div>
-        <button id="runButton" type="submit" disabled>Run Analysis</button>
+        <button id="runButton" type="submit" disabled>Generate report</button>
       </form>
       <p class="fineprint">Reports are generated under <code>output/webui_runs</code>. Genetic data is not sent to external services by this UI.</p>
       </div>
@@ -361,10 +372,12 @@ INDEX_HTML = """<!doctype html>
 
     <section class="result-panel">
       <div class="result-inner">
-      <div id="status" class="report-copy"></div>
-      <div id="resultActions" class="result-actions">
-        <a id="viewReport" class="link-button" href="#" target="_blank" rel="noopener">View Report</a>
-        <a id="downloadReport" class="link-button" href="#">Download Report</a>
+      <div id="reportCard" class="report-card">
+        <div id="status" class="report-copy"></div>
+        <div id="resultActions" class="result-actions">
+          <a id="viewReport" class="link-button" href="#" target="_blank" rel="noopener">View Report</a>
+          <a id="downloadReport" class="link-button" href="#">Download Report</a>
+        </div>
       </div>
       </div>
     </section>
@@ -377,6 +390,7 @@ INDEX_HTML = """<!doctype html>
     const prsPanel = document.getElementById('prsPanel');
     const drug = document.getElementById('drug');
     const statusBox = document.getElementById('status');
+    const reportCard = document.getElementById('reportCard');
     const runButton = document.getElementById('runButton');
     const actions = document.getElementById('resultActions');
     const viewReport = document.getElementById('viewReport');
@@ -452,14 +466,18 @@ INDEX_HTML = """<!doctype html>
     }
 
     function showReportDescription() {
-      statusBox.innerHTML = skill.value ? (reportDescriptions[skill.value] || '') : '';
+      const hasDescription = Boolean(skill.value);
+      reportCard.classList.toggle('is-visible', hasDescription);
+      statusBox.innerHTML = hasDescription ? (reportDescriptions[skill.value] || '') : '';
     }
 
     function showAnalysing() {
+      reportCard.classList.add('is-visible');
       statusBox.innerHTML = '<p class="analysing-message">Analysing...</p>';
     }
 
     function showReady() {
+      reportCard.classList.add('is-visible');
       statusBox.innerHTML = '<p class="ready-message">Your report is ready</p>';
     }
 
