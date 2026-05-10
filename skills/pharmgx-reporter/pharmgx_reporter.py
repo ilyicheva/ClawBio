@@ -1925,7 +1925,11 @@ def _evidence_cell_html(enrichment_entry, classification=""):
 
 ICON = {"standard": "OK", "caution": "CAUTION", "avoid": "AVOID", "indeterminate": "INDETERMINATE — INSUFFICIENT DATA"}
 
-PGX_HTML_DISCLAIMER = DISCLAIMER.replace("ClawBio is", "This is", 1)
+PGX_HTML_DISCLAIMER = (
+    "This is a research and educational tool. It is not a medical advice and "
+    "does not provide clinical diagnoses. Consult a healthcare professional "
+    "before making any medical decisions."
+)
 
 PGX_HTML_CSS = """\
 :root {
