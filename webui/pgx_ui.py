@@ -511,7 +511,7 @@ INDEX_HTML = """<!doctype html>
 
     <section class="result-panel">
       <div id="emptyVisual" class="empty-visual" aria-hidden="true">
-        <img src="/assets/genomic-insights-empty.png" alt="">
+        <img src="/assets/genomic-insights-empty-v2.png" alt="">
       </div>
       <div class="result-inner">
       <div id="reportCard" class="report-card">
