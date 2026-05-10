@@ -881,13 +881,75 @@ DRUGPHOTO_DISCLAIMER = (
 )
 
 DRUGPHOTO_HTML_CSS = """\
-.medicine-card {
+:root {
+  --cb-green-900: #17265f;
+  --cb-green-700: #17265f;
+  --cb-green-500: #3478c8;
+  --cb-green-100: #eef2ff;
+  --cb-green-50: #f7f9ff;
+  --cb-bg: #f4f1ed;
+  --cb-surface: #ffffff;
+  --cb-text: #172033;
+  --cb-text-secondary: #5f6675;
+  --cb-border: #d9dde7;
+  --clawbio-green: #17265f;
+}
+body {
+  max-width: 1080px;
+  padding: 32px 20px;
+}
+h1 {
+  color: #17265f;
+  border-bottom-color: #17265f;
+}
+h2,
+h3 {
+  color: #17265f;
+}
+.report-header {
+  background: #17265f;
+  border-radius: 10px;
+  box-shadow: 0 18px 50px rgba(23, 38, 95, 0.16);
+}
+.metadata {
+  background: #eef2ff;
+  border: 1px solid #d9dde7;
+}
+.metadata strong,
+th,
+.report-footer .footer-brand {
+  color: #17265f;
+}
+th {
+  background: #eef2ff;
+  border-bottom-color: #c6d4f5;
+}
+tr:hover {
+  background: #eef2ff;
+}
+.table-wrap {
+  background: #ffffff;
+}
+.disclaimer {
   background: #ffffff;
   border: 1px solid #d9dde7;
+  border-left: 4px solid #3478c8;
   border-radius: 10px;
+  color: #172033;
   box-shadow: 0 10px 28px rgba(23, 38, 95, 0.08);
-  padding: 20px;
-  margin: 18px 0 28px;
+}
+.disclaimer strong {
+  color: #17265f;
+}
+.report-footer {
+  border-top-color: #d9dde7;
+  color: #5f6675;
+}
+a {
+  color: #3478c8;
+}
+.medicine-card {
+  margin: 24px 0 30px;
 }
 .medicine-card h2,
 .result-summary h2 {
@@ -895,13 +957,13 @@ DRUGPHOTO_HTML_CSS = """\
 }
 .medicine-name {
   color: #17265f;
-  font-size: 1.8em;
+  font-size: 1.35em;
   font-weight: 800;
-  margin: 0 0 14px;
+  margin: 0 0 10px;
 }
 .medicine-meta {
   display: grid;
-  gap: 10px;
+  gap: 6px;
   margin: 0;
 }
 .medicine-meta div {
@@ -917,11 +979,7 @@ DRUGPHOTO_HTML_CSS = """\
   margin: 0;
 }
 .result-summary {
-  background: #f7f9ff;
-  border-left: 4px solid #3478c8;
-  border-radius: 10px;
-  padding: 18px 20px;
-  margin: 22px 0;
+  margin: 24px 0 30px;
 }
 .result-summary h3 {
   margin-top: 0;
@@ -930,7 +988,7 @@ details {
   background: #ffffff;
   border: 1px solid #d9dde7;
   border-radius: 10px;
-  padding: 14px 16px;
+  padding: 14px 16px 2px;
   margin: 22px 0;
 }
 details summary {
@@ -1053,7 +1111,7 @@ def generate_single_drug_html_report(result, profiles, visible_dose=None):
     b = HtmlReportBuilder(
         "Single Medicine Gene Insight",
         "Drug Photo",
-        extra_css=PGX_HTML_CSS + DRUGPHOTO_HTML_CSS,
+        extra_css=DRUGPHOTO_HTML_CSS,
     )
     disclaimer_html = (
         '<div class="disclaimer"><strong>DISCLAIMER:</strong> '
