@@ -981,6 +981,39 @@ a {
 .result-summary {
   margin: 24px 0 30px;
 }
+.summary-lede {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.summary-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  margin-top: 2px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+}
+.summary-icon-check {
+  color: #3478c8;
+}
+.summary-icon-caution {
+  color: #9a6700;
+}
+.summary-icon-stop {
+  color: #b42318;
+  border-radius: 9px;
+  clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%);
+}
+.summary-copy {
+  min-width: 0;
+}
 .result-summary h3 {
   margin-top: 0;
 }
@@ -1000,6 +1033,9 @@ details summary {
   .medicine-meta div {
     grid-template-columns: 1fr;
     gap: 2px;
+  }
+  .summary-lede {
+    gap: 10px;
   }
 }
 """
@@ -1061,6 +1097,14 @@ def _drugphoto_summary(result):
     return heading, body
 
 
+def _drugphoto_summary_icon(classification):
+    if classification == "standard":
+        return "summary-icon-check", "✓", "Standard guidance"
+    if classification == "avoid":
+        return "summary-icon-stop", "!", "Stop or avoid"
+    return "summary-icon-caution", "!", "Use caution"
+
+
 def _profile_table_rows(profiles):
     rows = []
     for gene, profile in profiles.items():
@@ -1101,6 +1145,9 @@ def generate_single_drug_html_report(result, profiles, visible_dose=None):
         )
 
     summary_heading, summary_body = _drugphoto_summary(result)
+    summary_icon_class, summary_icon_text, summary_icon_label = _drugphoto_summary_icon(
+        result["classification"]
+    )
     dose_html = ""
     if visible_dose:
         dose_html = (
@@ -1133,11 +1180,17 @@ def generate_single_drug_html_report(result, profiles, visible_dose=None):
     b.add_raw_html(
         '<section class="result-summary">'
         "<h2>Result summary</h2>"
+        '<div class="summary-lede">'
+        f'<span class="summary-icon {summary_icon_class}" role="img" '
+        f'aria-label="{_h.escape(summary_icon_label)}">{summary_icon_text}</span>'
+        '<div class="summary-copy">'
         f"<h3>{_h.escape(summary_heading)}</h3>"
         f"<p>{_h.escape(summary_body)}</p>"
         "<p>Use this medicine only as prescribed. Speak with a doctor or pharmacist if you "
         "have side effects, poor symptom relief, or questions about whether this medicine "
         "is right for you.</p>"
+        "</div>"
+        "</div>"
         "</section>"
     )
     b.add_raw_html(
