@@ -67,7 +67,7 @@ SKILLS = {
         "slug": "pharmgx",
     },
     "drugphoto": {
-        "label": "Drug photo / single-drug PGx lookup",
+        "label": "Medicine Check",
         "slug": "drugphoto",
     },
     "nutrigx": {
@@ -441,7 +441,7 @@ INDEX_HTML = """<!doctype html>
         <select id="skill" name="skill" required>
           <option value="" selected></option>
           <option value="pharmgx">Pharmacogenomics report</option>
-          <option value="drugphoto">Drug photo / single-drug PGx lookup</option>
+          <option value="drugphoto">Medicine Check</option>
           <option value="nutrigx">Nutrigenomics advice</option>
           <option value="prs">Polygenic risk score</option>
         </select>
@@ -474,7 +474,7 @@ INDEX_HTML = """<!doctype html>
           </label>
           <label class="disclaimer-item">
             <input class="disclaimer-check" type="checkbox" required>
-            <span>it is not a medical device and does not provide clinical diagnoses, treatment recommendations, or personalised medical advice;</span>
+            <span>this tool does not provide clinical diagnoses, treatment recommendations, or personalised medical advice;</span>
           </label>
           <label class="disclaimer-item">
             <input class="disclaimer-check" type="checkbox" required>
