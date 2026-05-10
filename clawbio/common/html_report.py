@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import html
 import math
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -628,3 +629,143 @@ def write_html_report(output_dir: str | Path, filename: str, content: str) -> Pa
     path = out / filename
     path.write_text(content, encoding="utf-8")
     return path
+
+
+def markdown_to_html_report(
+    markdown_text: str,
+    title: str,
+    skill: str,
+    subtitle: str = "",
+) -> str:
+    """Render a compact, dependency-free Markdown report as ClawBio HTML.
+
+    This intentionally supports the report Markdown emitted by ClawBio skills:
+    headings, paragraphs, bullet/numbered lists, fenced code blocks, simple pipe
+    tables, horizontal rules, and inline emphasis/code. It is not a general
+    CommonMark implementation.
+    """
+
+    def inline(text: str) -> str:
+        text = html.escape(text)
+        text = re.sub(r"`([^`]+)`", r"<code>\1</code>", text)
+        text = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", text)
+        text = re.sub(r"\*([^*]+)\*", r"<em>\1</em>", text)
+        return text
+
+    def is_table_separator(line: str) -> bool:
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        return bool(cells) and all(re.fullmatch(r":?-{3,}:?", c or "") for c in cells)
+
+    def table_cells(line: str) -> list[str]:
+        return [c.strip() for c in line.strip().strip("|").split("|")]
+
+    lines = markdown_text.splitlines()
+    parts: list[str] = []
+    list_type: str | None = None
+    in_code = False
+    code_lines: list[str] = []
+    i = 0
+
+    def close_list() -> None:
+        nonlocal list_type
+        if list_type:
+            parts.append(f"</{list_type}>")
+            list_type = None
+
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.strip()
+
+        if stripped.startswith("```"):
+            if in_code:
+                parts.append(f"<pre><code>{html.escape(chr(10).join(code_lines))}</code></pre>")
+                code_lines = []
+                in_code = False
+            else:
+                close_list()
+                in_code = True
+            i += 1
+            continue
+
+        if in_code:
+            code_lines.append(line)
+            i += 1
+            continue
+
+        if not stripped:
+            close_list()
+            i += 1
+            continue
+
+        if stripped == "---":
+            close_list()
+            parts.append("<hr>")
+            i += 1
+            continue
+
+        if stripped.startswith("|") and i + 1 < len(lines) and is_table_separator(lines[i + 1]):
+            close_list()
+            headers = table_cells(stripped)
+            i += 2
+            rows = []
+            while i < len(lines) and lines[i].strip().startswith("|"):
+                rows.append(table_cells(lines[i]))
+                i += 1
+            parts.append('<div class="table-wrap"><table><thead><tr>')
+            parts.extend(f"<th>{inline(h)}</th>" for h in headers)
+            parts.append("</tr></thead><tbody>")
+            for row in rows:
+                parts.append("<tr>")
+                parts.extend(f"<td>{inline(cell)}</td>" for cell in row)
+                parts.append("</tr>")
+            parts.append("</tbody></table></div>")
+            continue
+
+        heading = re.match(r"^(#{1,6})\s+(.+)$", stripped)
+        if heading:
+            close_list()
+            level = min(len(heading.group(1)) + 1, 6)
+            parts.append(f"<h{level}>{inline(heading.group(2))}</h{level}>")
+            i += 1
+            continue
+
+        bullet = re.match(r"^[-*]\s+(.+)$", stripped)
+        numbered = re.match(r"^\d+\.\s+(.+)$", stripped)
+        if bullet or numbered:
+            wanted = "ul" if bullet else "ol"
+            if list_type != wanted:
+                close_list()
+                parts.append(f"<{wanted}>")
+                list_type = wanted
+            parts.append(f"<li>{inline((bullet or numbered).group(1))}</li>")
+            i += 1
+            continue
+
+        close_list()
+        para = [stripped]
+        i += 1
+        while i < len(lines):
+            nxt = lines[i].strip()
+            if (
+                not nxt
+                or nxt.startswith("#")
+                or nxt.startswith("```")
+                or nxt == "---"
+                or re.match(r"^[-*]\s+", nxt)
+                or re.match(r"^\d+\.\s+", nxt)
+                or (nxt.startswith("|") and i + 1 < len(lines) and is_table_separator(lines[i + 1]))
+            ):
+                break
+            para.append(nxt)
+            i += 1
+        parts.append(f"<p>{inline(' '.join(para))}</p>")
+
+    close_list()
+    if in_code:
+        parts.append(f"<pre><code>{html.escape(chr(10).join(code_lines))}</code></pre>")
+
+    builder = HtmlReportBuilder(title=title, skill=skill)
+    builder.add_header_block(title, subtitle)
+    builder.add_raw_html("\n".join(parts))
+    builder.add_footer_block(skill)
+    return builder.render()

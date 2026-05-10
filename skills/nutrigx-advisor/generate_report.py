@@ -7,6 +7,8 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
+from clawbio.common.html_report import markdown_to_html_report, write_html_report
+
 
 DOMAIN_LABELS = {
     "folate": "Folate / B-Vitamins",
@@ -229,6 +231,14 @@ def generate_report(snp_calls, risk_scores, snp_panel, output_dir, figures=True,
     report_text = "\n".join(lines)
     report_path = output_dir / "nutrigx_report.md"
     report_path.write_text(report_text)
+    html = markdown_to_html_report(
+        report_text,
+        title="NutriGx Advisor Report",
+        skill="nutrigx-advisor",
+        subtitle="Personalised nutrigenomics from genotype data",
+    )
+    write_html_report(output_dir, "nutrigx_report.html", html)
+    write_html_report(output_dir, "report.html", html)
 
     if figures:
         _generate_figures(risk_scores, output_dir)

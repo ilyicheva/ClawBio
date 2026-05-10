@@ -38,6 +38,7 @@ from clawbio.common.parsers import (
 )
 from clawbio.common.checksums import sha256_hex
 from clawbio.common.report import write_result_json
+from clawbio.common.html_report import markdown_to_html_report, write_html_report
 
 # --------------------------------------------------------------------------- #
 # Paths
@@ -694,6 +695,13 @@ def generate_report(
     # Write report
     report_path = output_dir / "report.md"
     report_path.write_text(report_text, encoding="utf-8")
+    html = markdown_to_html_report(
+        report_text,
+        title="Genome Comparison Report",
+        skill="genome-compare",
+        subtitle="IBS comparison and ancestry estimation",
+    )
+    write_html_report(output_dir, "report.html", html)
 
     return report_text
 

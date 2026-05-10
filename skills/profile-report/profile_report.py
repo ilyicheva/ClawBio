@@ -28,6 +28,7 @@ if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
 from clawbio.common.report import DISCLAIMER, write_result_json
+from clawbio.common.html_report import markdown_to_html_report, write_html_report
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -774,6 +775,16 @@ def main() -> None:
     report_path = out_dir / "profile_report.md"
     report_path.write_text(report_md)
     print(f"Report written: {report_path}")
+
+    html = markdown_to_html_report(
+        report_md,
+        title="Personal Genomic Profile Report",
+        skill="profile-report",
+        subtitle="Unified summary of completed ClawBio analyses",
+    )
+    html_path = write_html_report(out_dir, "profile_report.html", html)
+    write_html_report(out_dir, "report.html", html)
+    print(f"HTML report written: {html_path}")
 
     # Write result.json
     write_result_json(

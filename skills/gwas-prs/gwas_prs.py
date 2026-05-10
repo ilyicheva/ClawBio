@@ -34,6 +34,8 @@ _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
+from clawbio.common.html_report import markdown_to_html_report, write_html_report
+
 from clawbio.common.parsers import parse_genetic_file, genotypes_to_simple
 from clawbio.common.checksums import sha256_hex
 from clawbio.common.report import write_result_json, DISCLAIMER as _SHARED_DISCLAIMER
@@ -1348,6 +1350,16 @@ def main():
         report_path = output_dir / "prs_report.md"
         report_path.write_text(report)
         print(f"Report written to {report_path}")
+
+        html = markdown_to_html_report(
+            report,
+            title="Polygenic Risk Score Report",
+            skill="gwas-prs",
+            subtitle="PGS Catalog scoring from genotype data",
+        )
+        html_path = write_html_report(output_dir, "prs_report.html", html)
+        write_html_report(output_dir, "report.html", html)
+        print(f"HTML report written to {html_path}")
 
         # Write JSON results (without per_variant details for compactness)
         json_results = []
