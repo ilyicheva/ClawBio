@@ -29,6 +29,7 @@ CLAWBIO_PY = PROJECT_ROOT / "clawbio.py"
 OUTPUT_ROOT = PROJECT_ROOT / "output"
 UPLOAD_ROOT = OUTPUT_ROOT / "webui_uploads"
 RUN_ROOT = OUTPUT_ROOT / "webui_runs"
+ASSET_ROOT = PROJECT_ROOT / "webui" / "assets"
 
 TRAITS = {
     "type2_diabetes": {
@@ -247,10 +248,30 @@ INDEX_HTML = """<!doctype html>
       color: white;
       display: flex;
       justify-content: flex-start;
+      position: relative;
+      overflow: hidden;
     }
     .result-inner {
       width: min(100%, 620px);
       padding-top: 0;
+      position: relative;
+      z-index: 1;
+    }
+    .empty-visual {
+      position: absolute;
+      inset: 0;
+      display: none;
+      background: var(--navy);
+    }
+    .empty-visual.is-visible {
+      display: block;
+    }
+    .empty-visual img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: right center;
+      display: block;
     }
     .report-card {
       display: none;
@@ -419,6 +440,7 @@ INDEX_HTML = """<!doctype html>
       main { grid-template-columns: 1fr; }
       section { padding: 24px 16px; }
       .form-panel, .result-panel { justify-content: center; }
+      .result-panel { min-height: 420px; }
       .result-inner { padding-top: 0; }
       .result-actions { grid-template-columns: 1fr; }
     }
@@ -488,6 +510,9 @@ INDEX_HTML = """<!doctype html>
     </section>
 
     <section class="result-panel">
+      <div id="emptyVisual" class="empty-visual" aria-hidden="true">
+        <img src="/assets/genomic-insights-empty.png" alt="">
+      </div>
       <div class="result-inner">
       <div id="reportCard" class="report-card">
         <div id="status" class="report-copy"></div>
@@ -508,6 +533,7 @@ INDEX_HTML = """<!doctype html>
     const drug = document.getElementById('drug');
     const statusBox = document.getElementById('status');
     const reportCard = document.getElementById('reportCard');
+    const emptyVisual = document.getElementById('emptyVisual');
     const runButton = document.getElementById('runButton');
     const actions = document.getElementById('resultActions');
     const viewReport = document.getElementById('viewReport');
@@ -585,15 +611,18 @@ INDEX_HTML = """<!doctype html>
     function showReportDescription() {
       const hasDescription = Boolean(skill.value);
       reportCard.classList.toggle('is-visible', hasDescription);
+      emptyVisual.classList.toggle('is-visible', !hasDescription);
       statusBox.innerHTML = hasDescription ? (reportDescriptions[skill.value] || '') : '';
     }
 
     function showAnalysing() {
+      emptyVisual.classList.remove('is-visible');
       reportCard.classList.add('is-visible');
       statusBox.innerHTML = '<p class="analysing-message">Analysing...</p>';
     }
 
     function showReady() {
+      emptyVisual.classList.remove('is-visible');
       reportCard.classList.add('is-visible');
       statusBox.innerHTML = '<p class="ready-message">Your report is ready</p>';
     }
@@ -952,6 +981,9 @@ class PGxUIHandler(BaseHTTPRequestHandler):
         if parsed.path == "/api/traits":
             _json_response(self, HTTPStatus.OK, {"traits": TRAITS})
             return
+        if parsed.path.startswith("/assets/"):
+            self._serve_asset(parsed.path)
+            return
         if parsed.path.startswith("/reports/"):
             self._serve_report(parsed.path, parse_qs(parsed.query))
             return
@@ -1007,6 +1039,30 @@ class PGxUIHandler(BaseHTTPRequestHandler):
                     "error": str(exc),
                 },
             )
+
+    def _serve_asset(self, path: str) -> None:
+        parts = path.strip("/").split("/")
+        if len(parts) != 2 or parts[0] != "assets":
+            self.send_error(HTTPStatus.NOT_FOUND)
+            return
+        name = parts[1]
+        if not re.fullmatch(r"[A-Za-z0-9._-]+", name):
+            self.send_error(HTTPStatus.BAD_REQUEST)
+            return
+        asset_path = ASSET_ROOT / name
+        if not asset_path.exists():
+            self.send_error(HTTPStatus.NOT_FOUND)
+            return
+        data = asset_path.read_bytes()
+        self.send_response(HTTPStatus.OK)
+        if asset_path.suffix.lower() == ".png":
+            content_type = "image/png"
+        else:
+            content_type = "application/octet-stream"
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
 
     def _serve_report(
         self,
